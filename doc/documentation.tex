@@ -86,25 +86,30 @@
     \begin{lstlisting}[style=CStyle]
     #include "lpp.h" 
     \end{lstlisting}
-    for including tracer particles in the NS simulation. \textbf{(As of now LPP is not implemented. Only tracer particle option is available)}
+    for including tracer particles in the NS simulation. 
+    %\textbf{(As of now LPP is not implemented. Only tracer particle option is available)}
     Initialisation of tracer particle has to be carried out by the user. 
     
     
     
     %------------Links for reference
     \section{Links}
-    To access the code visit the gitlab project \url{https://gitlab.com/ahmedbasil/lpp/-/tree/master/src}.
+    To access the code visit the 
+    github project \url{https://github.com/basilkottilingal/LPP}
+    gitlab project \url{https://gitlab.com/ahmedbasil/lpp/-/tree/master/src}.
     
     \section{Drag Model}
     
     Simple model
     
     $$\frac{d }{d t} \mathbf{U}_p = - \frac{1}{\tau}\left(\mathbf{U}_p - \mathbf{u}\right) + (\rho_p - \rho) \frac{4 \pi {r_p}^3}{3} \mathbf{g} $$
-    Explicit discretisation
+    Implicit discretisation
     $$\frac{\mathbf{U}_p^{n+1}-\mathbf{U}_p^n}{\mathtt{dt}} = \frac{1}{\tau}\left(\mathbf{u} - \mathbf{U}_p^{n+1}\right) + \mathbf{g}',$$
     
+    \subsection{stability condition}
+   \textbf{'event' for stability not written.}
+    
     \section{Two way coupling}
-     ...\textbf{NOT YET DONE}
     \section{Struct used}
     
     The struct named \fname{Particle} stores the information of the coordintae of a point particle. It also stores velocity, density and radius of the point particle. Each particle has a unique tag of type long.
@@ -246,7 +251,7 @@ int (* particle_boundary)(Particle * p) = NULL;
     \end{lstlisting}
     
     
-    Example of a reflective boundary condition is given here
+    Example of a particle boundary condition is given here
     \begin{lstlisting}[style=CStyle]
 #define reflection(x) {\                                                                            
 x[0] = x[0] < X0 ? (2*X0 - x[0]) : x[0] > (X0+L0) ? (2*(X0+L0) - x[0]) : x[0]; \       
@@ -277,6 +282,17 @@ event defaults(i=0){
 
     
     \subsection{Examples}
+    Inertial testcase:
+    Falling ash particles \url{https://github.com/basilkottilingal/LPP/blob/main/examples/ash.c}
+    
+    Randomly moving particles: 
+    \url{https://github.com/basilkottilingal/LPP/blob/main/examples/random.c}
+    
+    Other testcases \url{https://github.com/basilkottilingal/LPP/blob/main/examples/}
+    
+    Use Makefile to compile,run and plot
+    
+
     
     
     \end{document}
