@@ -1,0 +1,282 @@
+    %compile using
+    %$  pdflatex documentation.tex
+    %-----------------DOCUMENT CLASS----------
+    \documentclass[a4paper,12pt]{article}
+    
+    %----------------Including Packages-------------
+    \usepackage{graphicx}
+    \usepackage[utf8]{inputenc}
+    \usepackage[english]{babel}
+    \usepackage{wrapfig,psfrag}
+    \usepackage{bm}
+    \usepackage{amsmath}%
+    \usepackage{latexsym}
+    \usepackage{natbib}
+    \usepackage{setspace}
+    \usepackage{titlesec}
+    \usepackage{dcolumn}%¬
+    \usepackage{bm}%¬
+    \usepackage[usenames]{color}%¬
+    \usepackage{wrapfig,psfrag}
+    \usepackage{rotating}
+    %\usepackage{iopams}  
+    \usepackage{bm}
+    \usepackage{setspace}
+    \usepackage{latexsym}
+    \usepackage{multirow}
+    \usepackage{subcaption}
+    \usepackage{geometry}
+     \geometry{
+     a4paper,
+     total={170mm,257mm},
+     left=20mm,
+     top=20mm,
+     }
+    \usepackage[colorlinks = true,
+                linkcolor = blue,
+                urlcolor  = blue,
+                citecolor = blue,
+                anchorcolor = blue]{hyperref}
+                
+    \usepackage{xcolor}
+    \usepackage{listings}
+    
+    \definecolor{mGreen}{rgb}{0,0.6,0}
+    \definecolor{mGray}{rgb}{0.5,0.5,0.5}
+    \definecolor{mPurple}{rgb}{0.58,0,0.82}
+    \definecolor{backgroundColour}{rgb}{0.95,0.95,0.92}
+    
+    \lstdefinestyle{CStyle}{
+        backgroundcolor=\color{backgroundColour},   
+        commentstyle=\color{mGreen},
+        keywordstyle=\color{magenta},
+        numberstyle=\tiny\color{mGray},
+        stringstyle=\color{mPurple},
+        basicstyle=\footnotesize,
+        breakatwhitespace=false,         
+        breaklines=true,                 
+        captionpos=b,                    
+        keepspaces=true,                 
+        numbers=left,                    
+        numbersep=5pt,                  
+        showspaces=false,                
+        showstringspaces=false,
+        showtabs=false,                  
+        tabsize=2,
+        language=C
+    }
+                
+    \newcommand{\fname}[1]{\textcolor{black}{\underline{#1}}}
+    
+    %---------------TITLE Information
+    \title{Lagrangian Point Particle code Readme Documentation}
+    \date{2021\\ August}
+    \author{Ahmed Basil KOTTILINGAL\\ Sorbonne University}
+    \begin{document}
+    
+    %--------------Make title
+    \maketitle
+    
+    %------------Sections of Document
+    \section{Introduction}
+    
+    This code works with basilisk (\url{http://basilisk.fr/}). To install basilisk, refer to \url{http://basilisk.fr/src/INSTALL}
+    
+    Use the line
+    \begin{lstlisting}[style=CStyle]
+    #include "lpp.h" 
+    \end{lstlisting}
+    for including tracer particles in the NS simulation. \textbf{(As of now LPP is not implemented. Only tracer particle option is available)}
+    Initialisation of tracer particle has to be carried out by the user. 
+    
+    
+    
+    %------------Links for reference
+    \section{Links}
+    To access the code visit the gitlab project \url{https://gitlab.com/ahmedbasil/lpp/-/tree/master/src}.
+    
+    \section{Drag Model}
+    
+    Simple model
+    
+    $$\frac{d }{d t} \mathbf{U}_p = - \frac{1}{\tau}\left(\mathbf{U}_p - \mathbf{u}\right) + (\rho_p - \rho) \frac{4 \pi {r_p}^3}{3} \mathbf{g} $$
+    Explicit discretisation
+    $$\frac{\mathbf{U}_p^{n+1}-\mathbf{U}_p^n}{\mathtt{dt}} = \frac{1}{\tau}\left(\mathbf{u} - \mathbf{U}_p^{n+1}\right) + \mathbf{g}',$$
+    
+    \section{Two way coupling}
+     ...\textbf{NOT YET DONE}
+    \section{Struct used}
+    
+    The struct named \fname{Particle} stores the information of the coordintae of a point particle. It also stores velocity, density and radius of the point particle. Each particle has a unique tag of type long.
+    \begin{lstlisting}[style=CStyle]
+    typedef struct{
+      double x[dimension];
+    #if _MPI
+      int pid;
+    #endif
+    #if _PINERTIAL
+      double u[dimension];
+      double rho, r;
+      long tag;
+    #endif
+    }Particle;
+    \end{lstlisting}
+    
+    The struct \fname{Particles} maintain list of particles. The default list of Particles is \fname{\_particles}.
+    
+    \begin{lstlisting}[style=CStyle]
+    typedef struct {
+      Particle * p;
+      unsigned int len, max;
+    }Particles;
+    \end{lstlisting}
+    
+    
+    
+    To add a new particle to a list of particles, use \fname{add\_particle()}. The function \fname{add\_particle()} return the pointer of newly added particle (\fname{Particle *}) which can be used to set the properties of the particle. For example
+    \begin{lstlisting}[style=CStyle]
+    Particle * p = add_particle(P); //Adding a new particle to P
+    p->x[0] = 3.5;                  //setting properties of particle, p
+    \end{lstlisting}
+    
+    %----------------------------------Maintaining cache-------------
+    \section{Particle Cache}
+    Say "P" is a set of particles (\fname{Particles *}), to iterate through the particles in P, you can use the iterator \fname{foreach\_particle(P)}. The iteration order is random as the particles are randomly ordered. But in many case you might need to access the particles in each AMR cell, its neighbors etc. So to do that, we maintain another cache of particles.
+    
+    \begin{lstlisting}[style=CStyle]
+    typedef struct{
+      Particle ** cache;
+      unsigned int len, max;
+    }Particles_cache;
+    \end{lstlisting}
+    
+    
+    The default cache of particles is \fname{Pcache}. To set  \fname{Pcache}, call the function
+    \begin{lstlisting}[style=CStyle]
+    particles_cache_update(P);   \\maintaing a cache of particles, P in Pcache
+                                 \\Pcache is the _default cache;
+    \end{lstlisting}
+    When the \fname{particles\_cache\_update(P)}, the scalars nparticles[] and zparticles[] are updated. nparticles[] store the number of particles in each AMR cell and zparticles[] store the starting integer index to the cache of the particle in each AMR cell.
+    
+    So inorder to iterate through all the particles in  the cell you can use the iterator
+    \fname{foreach\_} \fname{particle\_in\_cell(zp, np)}. Example for the usage is
+    \begin{lstlisting}[style=CStyle]
+    foreach_particle_in_cell((int) zparticles[], (int) nparticles[]){
+        foreach_dimension()
+          assert(xp >= (x-0.5*Delta) && xp <  (x+0.5*Delta));
+          //xp is the coordinate of particle.
+    }
+    \end{lstlisting}
+    
+    To iterate through all the particles in the cache, 
+    \begin{lstlisting}[style=CStyle]
+    foreach_particle_cache(){
+        //..
+    }
+    \end{lstlisting}
+    Make sure that \fname{Pcache} is updated by calling  \fname{particles\_cache\_update(P)} before using any particle cache iterators.
+    
+    %---------------------Foreach iterators
+    \section{Foreach Iterators}
+    \begin{itemize}
+        \item \fname{foreach\_particle(P)} \\
+        You can iterate through all the particles in the list P.
+        \item \fname{foreach\_particle\_in\_cell(zp, np)} \\
+        You can iterate through all the particles in the cache \fname{Pcache} whose integer indices lies in [zp,zp+np) .
+        \item Inorder to iterate through all the particles in the cell, use
+        \begin{lstlisting}[style=CStyle]
+    foreach_particle_in_cell((int) zparticles[], (int) nparticles[]){
+    }   \end{lstlisting}
+        \item In order to iterate through all the particles in Pcache, use    \begin{lstlisting}[style=CStyle]
+    foreach_particle_in_cell(0, Pcache->len){
+    }    \end{lstlisting}
+        \item You can also use \fname{foreach\_particle\_cache()} to iterate through all the particles in Pcache
+    \end{itemize}
+    \textbf{Make sure that \fname{Pcache} is updated by calling  \fname{particles\_cache\_update(P)} before using any particle cache iterators}.
+    
+    %---------------------------
+    \section{lpp-tree.h}
+    If Octree (or quadtree) is being used in basilisk, you (might) have to use grid adapt function \fname{adapt\_wavelet()}. If you are using lpp.h, \textbf{make sure you use 
+    \fname{adapt\_wavelet\_particles()} instead of \fname{adapt\_wavelet()}}. Use arguments in the  same way. 
+    
+    Will try to fix in the next update of lpp-tree.h
+    
+    \section{Additional Notes/Readings}
+    \subsection{Warning}
+    \textbf{Some testcases (eg:random.c) doesn't work with latest verions of basilisk}
+    
+    \textbf{Current version doesn't work for periodic bounday.}
+    
+    Need to fix
+    \fname{locate\_rank (struct \_locate p) } in \fname{lpp-common.h}
+    \subsection{lpp-view.h}
+    The function \fname{lpp\_view (struct \_lpp\_view p)} is not well written.
+    
+    
+    \textbf{Make sure the correct GL libraries are included when including \fname{lpp-view.h} }
+    
+    \subsection{Advection Particles}
+    To advect all the particles in time with a local velocity vector $\mathbf{u}$, use the function
+    
+    
+    \fname{particle\_advance(Particle * particle, vector u)}. 
+    Refer \fname{lpp.h}
+    
+    
+    \subsection{Adding a particle to Particles list}
+    Suppose you wan't to add 100 points to the \fname{Particles} list P, \textbf{you have to make sure enough memory is created to accomodate them}. You can do this by
+    \begin{lstlisting}[style=CStyle]
+    particles_append(P, 100);
+    \end{lstlisting}
+    
+    Then you can add 100 points like this
+    \begin{lstlisting}[style=CStyle]
+    for (int i=0; i<100; ++i){
+        Particle * p = add_particle(P); //Adding a new particle to P
+        //Don't forget to set the coordinates and other props of the particle
+        p->x[0] = 3.5;                  //setting properties of particle, p
+        p->x[1] = 2.1;
+    }
+    \end{lstlisting}
+    
+    \subsection{Particle Boundary Condition}
+    To add boundary condition to each particle, use the default function pointer \fname{particle\_boundary}. 
+    \begin{lstlisting}[style=CStyle]
+int (* particle_boundary)(Particle * p) = NULL;
+    \end{lstlisting}
+    
+    
+    Example of a reflective boundary condition is given here
+    \begin{lstlisting}[style=CStyle]
+#define reflection(x) {\                                                                            
+x[0] = x[0] < X0 ? (2*X0 - x[0]) : x[0] > (X0+L0) ? (2*(X0+L0) - x[0]) : x[0]; \       
+x[1] = x[1] < Y0 ? (2*Y0 - x[1]) : x[1] > (Y0+L0) ? (2*(Y0+L0) - x[1]) : x[1]; \       
+}
+int reflection_boundary(Particle * particle){
+        particle_var();
+        reflection(particle->x);
+        return 1;
+}
+event defaults(i=0){
+        particle_boundary = reflection_boundary;
+}
+    \end{lstlisting}
+    Note that boundary condition is used to update coordinate of particles even though you can update other particle variables also inside the function. 
+    \textbf{Make sure reassigning new coordinates to particles doesn't violate the CFL condition. There is only one function pointer as of now. So put all boundary condition in one function}
+    
+    \subsection{Debug option}
+    Add the compiler flag \textbf{-D\_PDEBUG} to add debug option
+    
+    
+    
+    
+    \subsection{Other compiler options}
+    Add the compiler flag \textbf{-D\_PINERTIAL} to simulate inertial particles.
+    Add the compiler flag \textbf{-D\_PTAG} to add tag variable to each particle.
+    Add the compiler flag \textbf{-DTWO\_WAY} to add two way force coupling.
+
+    
+    \subsection{Examples}
+    
+    
+    \end{document}
